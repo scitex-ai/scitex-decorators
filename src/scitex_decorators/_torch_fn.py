@@ -88,7 +88,12 @@ def torch_fn(func: Callable) -> Callable:
 
         # Skip strict assertion for certain types that may not convert to tensors
         # Instead, convert what we can and pass through what we can't
-        import torch
+        try:
+            import torch
+        except ImportError as exc:
+            raise ImportError(
+                "torch_fn requires torch: pip install scitex-decorators[torch]"
+            ) from exc
 
         validated_args = []
         for arg_index, arg in enumerate(converted_args):
@@ -113,7 +118,12 @@ def torch_fn(func: Callable) -> Callable:
         results = func(*validated_args, **converted_kwargs)
 
         # Convert results back to original input types
-        import torch
+        try:
+            import torch
+        except ImportError as exc:
+            raise ImportError(
+                "torch_fn requires torch: pip install scitex-decorators[torch]"
+            ) from exc
 
         if isinstance(results, torch.Tensor):
             if original_object is not None:
@@ -125,21 +135,36 @@ def torch_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataFrame"
                 ):
-                    import pandas as pd
+                    try:
+                        import pandas as pd
+                    except ImportError as exc:
+                        raise ImportError(
+                            "torch_fn requires pandas for DataFrame inputs: pip install scitex-decorators[pandas]"
+                        ) from exc
 
                     return pd.DataFrame(results.detach().cpu().numpy())
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Series"
                 ):
-                    import pandas as pd
+                    try:
+                        import pandas as pd
+                    except ImportError as exc:
+                        raise ImportError(
+                            "torch_fn requires pandas for Series inputs: pip install scitex-decorators[pandas]"
+                        ) from exc
 
                     return pd.Series(results.detach().cpu().numpy().flatten())
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataArray"
                 ):
-                    import xarray as xr
+                    try:
+                        import xarray as xr
+                    except ImportError as exc:
+                        raise ImportError(
+                            "torch_fn requires xarray for DataArray inputs: pip install scitex-decorators[xarray]"
+                        ) from exc
 
                     return xr.DataArray(results.detach().cpu().numpy())
             return results

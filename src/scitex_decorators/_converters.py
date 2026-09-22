@@ -47,7 +47,11 @@ def _conversion_warning(old: _Any, new) -> None:
 
 def _try_device(tensor, device: str):
     """Try to move tensor to specified device with graceful fallback."""
-    import torch
+    try:
+        import torch
+    except ImportError:
+        # torch absent: nothing can be a tensor, return input unchanged.
+        return tensor
 
     if not isinstance(tensor, torch.Tensor):
         return tensor
@@ -66,7 +70,11 @@ def _try_device(tensor, device: str):
 
 def is_torch(*args: _Any, **kwargs: _Any) -> bool:
     """Check if any input is a PyTorch tensor."""
-    import torch
+    try:
+        import torch
+    except ImportError:
+        # torch absent: no input can be a tensor.
+        return False
 
     return any(isinstance(arg, torch.Tensor) for arg in args) or any(
         isinstance(val, torch.Tensor) for val in kwargs.values()
@@ -75,7 +83,11 @@ def is_torch(*args: _Any, **kwargs: _Any) -> bool:
 
 def is_cuda(*args: _Any, **kwargs: _Any) -> bool:
     """Check if any input is a CUDA tensor."""
-    import torch
+    try:
+        import torch
+    except ImportError:
+        # torch absent: no input can be a CUDA tensor.
+        return False
 
     return any((isinstance(arg, torch.Tensor) and arg.is_cuda) for arg in args) or any(
         (isinstance(val, torch.Tensor) and val.is_cuda) for val in kwargs.values()
@@ -106,7 +118,12 @@ def to_torch(
     **kwargs: _Any,
 ) -> _Any:
     """Convert various data types to PyTorch tensors."""
-    import torch
+    try:
+        import torch
+    except ImportError as exc:
+        raise ImportError(
+            "to_torch requires torch: pip install scitex-decorators[torch]"
+        ) from exc
 
     if device is None:
         device = kwargs.get("device", "cuda" if torch.cuda.is_available() else "cpu")
@@ -118,7 +135,12 @@ def to_torch(
         - float16 inputs -> torch.float16
         - float32 / integer / unknown -> torch.float32 (current default)
         """
-        import torch
+        try:
+            import torch
+        except ImportError as exc:
+            raise ImportError(
+                "to_torch requires torch: pip install scitex-decorators[torch]"
+            ) from exc
 
         np_dtype = getattr(arr, "dtype", None)
         if np_dtype is not None:
@@ -135,9 +157,6 @@ def to_torch(
 
     def _to_torch(data: _Any) -> _Any:
         """Internal conversion function for various data types."""
-        import pandas as pd
-        import torch
-
         # Check for None
         if data is None:
             return None
@@ -152,6 +171,24 @@ def to_torch(
             if all(isinstance(item, int) for item in data):
                 return data  # Keep as is for dimension tuples
 
+        # Optional-heavy conversion below needs pandas + torch.
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError(
+                "to_torch requires pandas: pip install scitex-decorators[pandas]"
+            ) from exc
+        try:
+            import torch
+        except ImportError as exc:
+            raise ImportError(
+                "to_torch requires torch: pip install scitex-decorators[torch]"
+            ) from exc
+
+        # Handle collections
+        if isinstance(data, (tuple, list)) and not all(
+            isinstance(item, int) for item in data
+        ):
             # Check if it's a numeric array-like structure
             try:
                 # Promote via numpy first so that mixed-precision inputs follow
@@ -235,9 +272,6 @@ def to_numpy(*args: _Any, return_fn: Callable = _return_if, **kwargs: _Any) -> _
 
     def _to_numpy(data: _Any) -> _Any:
         """Internal conversion function for various data types."""
-        import pandas as pd
-        import torch
-
         # Check for None
         if data is None:
             return None
@@ -245,6 +279,19 @@ def to_numpy(*args: _Any, return_fn: Callable = _return_if, **kwargs: _Any) -> _
         # Don't convert scalars (int, float, bool, str) - they should remain as is
         if isinstance(data, (int, float, bool, str)):
             return data
+
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError(
+                "to_numpy requires pandas: pip install scitex-decorators[pandas]"
+            ) from exc
+        try:
+            import torch
+        except ImportError as exc:
+            raise ImportError(
+                "to_numpy requires torch: pip install scitex-decorators[torch]"
+            ) from exc
 
         # Handle pandas types
         if isinstance(data, (pd.Series, pd.DataFrame)):

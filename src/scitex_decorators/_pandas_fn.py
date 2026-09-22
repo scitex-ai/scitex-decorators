@@ -36,9 +36,12 @@ def pandas_fn(func: Callable) -> Callable:
 
         # Convert args to pandas DataFrames
         def to_pandas(data):
-            import pandas as pd
-            import torch
-            import xarray as xr
+            try:
+                import pandas as pd
+            except ImportError as exc:
+                raise ImportError(
+                    "pandas_fn requires pandas: pip install scitex-decorators[pandas]"
+                ) from exc
 
             if data is None:
                 return None
@@ -72,7 +75,12 @@ def pandas_fn(func: Callable) -> Callable:
         converted_kwargs = {k: to_pandas(v) for k, v in kwargs.items()}
 
         # Skip strict assertion for certain types
-        import pandas as pd
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError(
+                "pandas_fn requires pandas: pip install scitex-decorators[pandas]"
+            ) from exc
 
         validated_args = []
         for arg_index, arg in enumerate(converted_args):
@@ -97,7 +105,12 @@ def pandas_fn(func: Callable) -> Callable:
         results = func(*validated_args, **converted_kwargs)
 
         # Convert results back to original input types
-        import pandas as pd
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError(
+                "pandas_fn requires pandas: pip install scitex-decorators[pandas]"
+            ) from exc
 
         if isinstance(results, pd.DataFrame):
             if original_object is not None:
@@ -109,7 +122,12 @@ def pandas_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Tensor"
                 ):
-                    import torch
+                    try:
+                        import torch
+                    except ImportError as exc:
+                        raise ImportError(
+                            "pandas_fn requires torch for Tensor inputs: pip install scitex-decorators[torch]"
+                        ) from exc
 
                     return torch.tensor(results.values)
                 elif isinstance(original_object, pd.Series):
@@ -122,7 +140,12 @@ def pandas_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataArray"
                 ):
-                    import xarray as xr
+                    try:
+                        import xarray as xr
+                    except ImportError as exc:
+                        raise ImportError(
+                            "pandas_fn requires xarray for DataArray inputs: pip install scitex-decorators[xarray]"
+                        ) from exc
 
                     return xr.DataArray(results.values)
             return results

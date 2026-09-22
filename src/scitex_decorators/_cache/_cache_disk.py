@@ -55,7 +55,12 @@ def cache_disk(func):
             return x ** 2
     """
     cache_dir = _resolve_cache_dir()
-    from joblib import Memory as _Memory  # lazy: see todo#442
+    try:
+        from joblib import Memory as _Memory
+    except ImportError as exc:
+        raise ImportError(
+            "cache_disk requires joblib: pip install scitex-decorators[caching]"
+        ) from exc  # lazy: see todo#442
 
     memory = _Memory(cache_dir, verbose=0)
 

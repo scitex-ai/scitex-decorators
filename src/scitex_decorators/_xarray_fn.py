@@ -33,9 +33,12 @@ def xarray_fn(func: Callable) -> Callable:
 
         # Convert args to xarray DataArrays
         def to_xarray(data):
-            import pandas as pd
-            import torch
-            import xarray as xr
+            try:
+                import xarray as xr
+            except ImportError as exc:
+                raise ImportError(
+                    "xarray_fn requires xarray: pip install scitex-decorators[xarray]"
+                ) from exc
 
             if isinstance(data, xr.DataArray):
                 return data
@@ -56,7 +59,12 @@ def xarray_fn(func: Callable) -> Callable:
         converted_kwargs = {k: to_xarray(v) for k, v in kwargs.items()}
 
         # Assertion to ensure all args are converted to xarray DataArrays
-        import xarray as xr
+        try:
+            import xarray as xr
+        except ImportError as exc:
+            raise ImportError(
+                "xarray_fn requires xarray: pip install scitex-decorators[xarray]"
+            ) from exc
 
         for arg_index, arg in enumerate(converted_args):
             assert isinstance(
@@ -66,7 +74,12 @@ def xarray_fn(func: Callable) -> Callable:
         results = func(*converted_args, **converted_kwargs)
 
         # Convert results back to original input types
-        import xarray as xr
+        try:
+            import xarray as xr
+        except ImportError as exc:
+            raise ImportError(
+                "xarray_fn requires xarray: pip install scitex-decorators[xarray]"
+            ) from exc
 
         if isinstance(results, xr.DataArray):
             if original_object is not None:
@@ -78,21 +91,36 @@ def xarray_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Tensor"
                 ):
-                    import torch
+                    try:
+                        import torch
+                    except ImportError as exc:
+                        raise ImportError(
+                            "xarray_fn requires torch for Tensor inputs: pip install scitex-decorators[torch]"
+                        ) from exc
 
                     return torch.tensor(results.values)
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataFrame"
                 ):
-                    import pandas as pd
+                    try:
+                        import pandas as pd
+                    except ImportError as exc:
+                        raise ImportError(
+                            "xarray_fn requires pandas for DataFrame inputs: pip install scitex-decorators[pandas]"
+                        ) from exc
 
                     return pd.DataFrame(results.values)
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Series"
                 ):
-                    import pandas as pd
+                    try:
+                        import pandas as pd
+                    except ImportError as exc:
+                        raise ImportError(
+                            "xarray_fn requires pandas for Series inputs: pip install scitex-decorators[pandas]"
+                        ) from exc
 
                     return pd.Series(results.values.flatten())
             return results

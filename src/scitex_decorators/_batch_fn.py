@@ -71,9 +71,12 @@ def batch_fn(func: Callable) -> Callable:
                 # Fallback for wrapped functions
                 batch_result = func(x[start:end], *args, **kwargs)
 
-            import torch
+            try:
+                import torch
+            except ImportError:
+                torch = None
 
-            if isinstance(batch_result, torch.Tensor):
+            if torch is not None and isinstance(batch_result, torch.Tensor):
                 batch_result = batch_result.cpu()
             elif isinstance(batch_result, tuple):
                 batch_result = tuple(
@@ -83,7 +86,10 @@ def batch_fn(func: Callable) -> Callable:
 
             results.append(batch_result)
 
-        import torch
+        try:
+            import torch
+        except ImportError:
+            torch = None
 
         if isinstance(results[0], tuple):
             n_vars = len(results[0])
@@ -91,9 +97,11 @@ def batch_fn(func: Callable) -> Callable:
             for i_var in range(n_vars):
                 # Check if this element is stackable (tensor/array) or should be kept as-is
                 first_elem = results[0][i_var]
-                if isinstance(first_elem, (torch.Tensor, np.ndarray)):
+                if (torch is not None and isinstance(first_elem, torch.Tensor)) or isinstance(
+                    first_elem, np.ndarray
+                ):
                     # Stack tensors/arrays
-                    if isinstance(first_elem, torch.Tensor):
+                    if torch is not None and isinstance(first_elem, torch.Tensor):
                         if first_elem.ndim == 0:
                             combined = torch.stack([res[i_var] for res in results])
                         else:

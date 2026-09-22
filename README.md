@@ -19,9 +19,9 @@
   <a href="https://scitex-decorators.readthedocs.io/en/latest/"><img src="https://img.shields.io/readthedocs/scitex-decorators?label=docs" alt="docs"></a>
 </p>
 <p align="center">
-  <a href="https://github.com/ywatanabe1989/scitex-decorators/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-decorators/test.yml?branch=develop&label=tests" alt="tests"></a>
-  <a href="https://github.com/ywatanabe1989/scitex-decorators/actions/workflows/import-smoke-on-ubuntu-py3-12.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-decorators/import-smoke-on-ubuntu-py3-12.yml?branch=develop&label=install-check" alt="install-check"></a>
-  <a href="https://github.com/ywatanabe1989/scitex-decorators/actions/workflows/scitex-dev-quality-audit-on-ubuntu-latest.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-decorators/scitex-dev-quality-audit-on-ubuntu-latest.yml?branch=develop&label=quality" alt="quality"></a>
+  <a href="https://github.com/scitex-ai/scitex-decorators/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/scitex-ai/scitex-decorators/ci.yml?branch=develop&label=tests" alt="tests"></a>
+  <a href="https://github.com/scitex-ai/scitex-decorators/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/scitex-ai/scitex-decorators/ci.yml?branch=develop&label=install-check" alt="install-check"></a>
+  <a href="https://github.com/scitex-ai/scitex-decorators/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/scitex-ai/scitex-decorators/ci.yml?branch=develop&label=quality" alt="quality"></a>
   <a href="https://codecov.io/gh/ywatanabe1989/scitex-decorators"><img src="https://img.shields.io/codecov/c/github/ywatanabe1989/scitex-decorators/develop?label=cov" alt="cov"></a>
 </p>
 <!-- scitex-badges:end -->
@@ -32,18 +32,59 @@
 
 | # | Problem | Solution |
 |---|---------|----------|
-| 1 | **Array-type plumbing** — functions that should accept numpy / torch / pandas / xarray end up reimplementing isinstance dispatch + back-conversion every time. | **`@numpy_fn`, `@torch_fn`, `@pandas_fn`, `@xarray_fn`, `@signal_fn`** convert inputs to the named type, run the wrapped function, and restore the caller's original type on the way out. |
-| 2 | **Expensive recomputations** dominate dev cycles; ad-hoc `pickle` caches drift in invalidation and disk layout. | **`@cache_disk` (joblib) / `@cache_disk_async` / `@cache_mem`** give SciTeX-aware disk + memory caching with a documented cache-dir resolution order (`local_state.runtime_path` → `$SCITEX_CACHE_DIR` → `$SCITEX_DIR/decorators/runtime/cache`). |
-| 3 | **GPU / memory limits** force researchers to hand-batch tensors, often re-deriving the loop per project. | **`@batch_fn` + `@batch_numpy_fn` / `@batch_torch_fn` / `@batch_pandas_fn`** chunk inputs through the wrapped function and reassemble outputs; compose cleanly with the `@*_fn` converters. |
+| 1 | **Array-type plumbing** — functions taking numpy / torch / pandas / xarray keep reimplementing dispatch. | **Converter decorators** turn inputs into the named type, run the function, then restore the original type. |
+| 2 | **Repeat compute** dominates dev cycles; ad-hoc pickle caches drift in invalidation. | **Disk + memory caching** (`@cache_disk`, `@cache_mem`) with a documented resolution order. |
+| 3 | **Hand-batched tensors** — GPU / memory limits force per-project batching loops. | **@batch_fn** chunks inputs through the wrapped function and reassembles outputs. |
+
+## Quick Start
+
+```python
+import scitex_decorators as dec
+
+@dec.numpy_fn
+def kernel(x):
+    return x ** 2     # x is numpy inside; return matches caller's type
+
+@dec.cache_disk
+def expensive(x): ...
+```
+
+## Demo
+
+```mermaid
+flowchart LR
+    C["caller passes pandas.DataFrame"] --> D["@numpy_fn"]
+    D --> N["function body sees numpy.ndarray"]
+    N --> R["function returns numpy.ndarray"]
+    R --> O["caller receives pandas.DataFrame<br/>(original type restored)"]
+```
+
+<p align="center"><sub><b>Figure 1.</b> Type round-trip: the decorator converts to the named type, runs the body, and restores the caller's original type.</sub></p>
 
 ## Installation
 
 ```bash
-pip install scitex-decorators              # core (numpy only)
-pip install "scitex-decorators[caching]"   # + joblib for cache_disk
-pip install "scitex-decorators[torch]"     # + torch_fn / batch_torch_fn
-pip install "scitex-decorators[all]"       # everything
+uv pip install "scitex-decorators[all]"
 ```
+
+Requires Python ≥ 3.9. Core works on numpy alone; each decorator family
+is an opt-in extra.
+
+<details>
+<summary><b>Per-extra installs</b></summary>
+
+<br>
+
+| Extra | Pulls in |
+|---|---|
+| `caching` | disk caching (`joblib`) |
+| `pandas` | `pandas_fn` (`pandas`) |
+| `torch` | `torch_fn` (`torch`) |
+| `xarray` | `xarray_fn` (`xarray`) |
+| `dev` | tests + lint + dev helpers (`pytest`, `ruff`, `scitex-dev`, …) |
+| `docs` | Sphinx docs build (`sphinx`, `myst-parser`, …) |
+
+</details>
 
 ## Architecture
 
@@ -64,6 +105,8 @@ flowchart LR
     CO["@combined<br/>(stack of @*_fn)"] --> NP & PD & TR
 ```
 
+<p align="center"><sub><b>Figure 2.</b> Decorator family: converters, batching, caching and lifecycle decorators compose around the converter core.</sub></p>
+
 Each `@<type>_fn` decorator converts inputs to the named type, calls the
 wrapped function, then converts back to the caller's original type. The
 diagram above shows how `_combined.py`, `_auto_order.py`, and the
@@ -76,19 +119,6 @@ caching/timeout decorators compose around the converter family.
 > The public surface here is unchanged — `from scitex_decorators import
 > deprecated` keeps working. See [ADR-0001](docs/adr/0001-thin-reexport-of-deprecated.md)
 > for the contract and the SSOT rationale.
-
-## Quick Start
-
-```python
-import scitex_decorators as dec
-
-@dec.numpy_fn
-def kernel(x):
-    return x ** 2     # x is numpy inside; return matches caller's type
-
-@dec.cache_disk
-def expensive(x): ...
-```
 
 ## 1 Interfaces
 
@@ -141,19 +171,10 @@ dec.is_torch(x) ; dec.is_cuda(x)
 So the cache lives under the package's own runtime directory, and the
 package works without the umbrella scitex installed.
 
-## Demo
-
-```mermaid
-flowchart LR
-    C["caller passes pandas.DataFrame"] --> D["@numpy_fn"]
-    D --> N["function body sees numpy.ndarray"]
-    N --> R["function returns numpy.ndarray"]
-    R --> O["caller receives pandas.DataFrame<br/>(original type restored)"]
-```
-
 ## Status
 
-Standalone fork of `scitex.decorators`. Zero scitex.* runtime deps. The
+Standalone fork of `scitex.decorators`. Runtime deps: numpy, tqdm,
+scitex-config / -logging (plus scitex-dev, scitex-compat). The
 umbrella package's `scitex.decorators` import path is preserved via a
 `sys.modules`-alias bridge.
 

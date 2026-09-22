@@ -64,7 +64,12 @@ def signal_fn(func: Callable) -> Callable:
         results = func(*converted_args, **kwargs)
 
         # Convert results back to original input types
-        import torch
+        try:
+            import torch
+        except ImportError as exc:
+            raise ImportError(
+                "signal_fn requires torch: pip install scitex-decorators[torch]"
+            ) from exc
 
         def _to_np(t):
             arr = t.detach().cpu().numpy()
@@ -84,28 +89,48 @@ def signal_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataFrame"
                 ):
-                    import pandas as pd
+                    try:
+                        import pandas as pd
+                    except ImportError as exc:
+                        raise ImportError(
+                            "signal_fn requires pandas for DataFrame inputs: pip install scitex-decorators[pandas]"
+                        ) from exc
 
                     return pd.DataFrame(_to_np(results))
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Series"
                 ):
-                    import pandas as pd
+                    try:
+                        import pandas as pd
+                    except ImportError as exc:
+                        raise ImportError(
+                            "signal_fn requires pandas for Series inputs: pip install scitex-decorators[pandas]"
+                        ) from exc
 
                     return pd.Series(_to_np(results).flatten())
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataArray"
                 ):
-                    import xarray as xr
+                    try:
+                        import xarray as xr
+                    except ImportError as exc:
+                        raise ImportError(
+                            "signal_fn requires xarray for DataArray inputs: pip install scitex-decorators[xarray]"
+                        ) from exc
 
                     return xr.DataArray(_to_np(results))
             return results
 
         # Handle tuple returns (e.g., (signal, frequencies))
         elif isinstance(results, tuple):
-            import torch
+            try:
+                import torch
+            except ImportError as exc:
+                raise ImportError(
+                    "signal_fn requires torch: pip install scitex-decorators[torch]"
+                ) from exc
 
             converted_results = []
             for r in results:

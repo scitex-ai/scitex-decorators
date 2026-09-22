@@ -71,21 +71,36 @@ def numpy_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Tensor"
                 ):
-                    import torch
+                    try:
+                        import torch
+                    except ImportError as exc:
+                        raise ImportError(
+                            "numpy_fn requires torch for Tensor inputs: pip install scitex-decorators[torch]"
+                        ) from exc
 
                     return torch.tensor(results)
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataFrame"
                 ):
-                    import pandas as pd
+                    try:
+                        import pandas as pd
+                    except ImportError as exc:
+                        raise ImportError(
+                            "numpy_fn requires pandas for DataFrame inputs: pip install scitex-decorators[pandas]"
+                        ) from exc
 
                     return pd.DataFrame(results)
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Series"
                 ):
-                    import pandas as pd
+                    try:
+                        import pandas as pd
+                    except ImportError as exc:
+                        raise ImportError(
+                            "numpy_fn requires pandas for Series inputs: pip install scitex-decorators[pandas]"
+                        ) from exc
 
                     return pd.Series(results)
             return results

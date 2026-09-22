@@ -21,6 +21,7 @@ dependencies = [
     "numpy",
     "tqdm",
     "scitex-config>=0.3.0",
+    "scitex-logging>=0.1.0",
     # try_import_optional helper for gating heavy extras (torch/pandas/xarray).
     "scitex-dev>=0.11.7",
     # Canonical @deprecated lives in scitex-compat (zero-runtime-dep). The
@@ -84,6 +85,10 @@ scitex-decorators = "scitex_decorators"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["--disable-warnings"]
+markers = [
+    "smoke: fast CLI happy-path tests (<60s, runs on every PR)",
+    "e2e: end-to-end workflows against real subsystems (runs on every PR)",
+]
 
 [tool.coverage.run]
 parallel = true
