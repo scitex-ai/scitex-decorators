@@ -16,6 +16,8 @@ from pathlib import Path
 
 from scitex_config._ecosystem import local_state
 
+from .._runtime._optional_deps import import_joblib_memory
+
 
 def _resolve_cache_dir() -> str:
     """Return cache directory.
@@ -55,7 +57,7 @@ def cache_disk(func):
             return x ** 2
     """
     cache_dir = _resolve_cache_dir()
-    from joblib import Memory as _Memory  # lazy: see todo#442
+    _Memory = import_joblib_memory("cache_disk")  # lazy: see todo#442
 
     memory = _Memory(cache_dir, verbose=0)
 

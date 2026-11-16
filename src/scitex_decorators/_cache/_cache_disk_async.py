@@ -15,6 +15,7 @@ __DIR__ = os.path.dirname(__FILE__)
 import asyncio
 import functools
 
+from .._runtime._optional_deps import import_joblib_memory
 from ._cache_disk import _resolve_cache_dir
 
 
@@ -35,7 +36,7 @@ def cache_disk_async(func):
             return x ** 2
     """
     cache_dir = _resolve_cache_dir()
-    from joblib import Memory as _Memory  # lazy: see todo#442
+    _Memory = import_joblib_memory("cache_disk_async")  # lazy: see todo#442
 
     memory = _Memory(cache_dir, verbose=0)
 

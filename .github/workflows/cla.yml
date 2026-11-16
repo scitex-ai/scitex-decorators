@@ -27,4 +27,10 @@ jobs:
     uses: scitex-ai/.github/.github/workflows/cla.yml@main
     with:
       owner_allowlist: "bot*,ywatanabe1989,LLEmacs"
-    secrets: inherit
+      # Outsiders trigger this job (issue_comment / pull_request_target), so
+      # it runs on GitHub-hosted hardware, never on a persistent org runner.
+      runs_on: '["ubuntu-latest"]'
+    # Forward only the one secret the callee uses -- `secrets: inherit` would
+    # hand every repo secret to an outsider-triggerable job (PS-224).
+    secrets:
+      GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}

@@ -38,12 +38,17 @@ import sys
 from functools import wraps
 from typing import Callable
 
+import scitex_logging as slogging
+
 from ._batch_fn import batch_fn as _orig_batch_fn
 from ._numpy_fn import numpy_fn as _orig_numpy_fn
 from ._pandas_fn import pandas_fn as _orig_pandas_fn
 
 # Import original decorators
 from ._torch_fn import torch_fn as _orig_torch_fn
+
+# Human-facing status lines from enable/disable_auto_order go to stdout.
+_console = slogging.getConsole(__name__)
 
 # Decorator priority (higher = inner/applied first)
 DECORATOR_PRIORITY = {
@@ -144,10 +149,12 @@ def enable_auto_order():
     decorators_module.pandas_fn = pandas_fn
     decorators_module.batch_fn = batch_fn
 
-    print("Auto-ordering enabled for scitex decorators!")
-    print("Decorators will now apply in predefined order:")
-    print("  1. Type conversion (torch_fn, numpy_fn, pandas_fn)")
-    print("  2. Batch processing (batch_fn)")
+    _console.success("Auto-ordering enabled for scitex decorators.")
+    _console.info(
+        "Decorators now apply in predefined order: "
+        "1. type conversion (torch_fn, numpy_fn, pandas_fn), "
+        "2. batch processing (batch_fn)."
+    )
 
 
 def disable_auto_order():
@@ -160,7 +167,7 @@ def disable_auto_order():
     decorators_module.pandas_fn = _orig_pandas_fn
     decorators_module.batch_fn = _orig_batch_fn
 
-    print("Auto-ordering disabled. Using original decorators.")
+    _console.success("Auto-ordering disabled. Using original decorators.")
 
 
 __all__ = [

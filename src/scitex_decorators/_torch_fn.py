@@ -16,6 +16,7 @@ from typing import Callable
 import numpy as np
 
 from ._converters import _return_always, is_nested_decorator, to_torch
+from ._runtime._optional_deps import import_pandas, import_torch, import_xarray
 
 
 def torch_fn(func: Callable) -> Callable:
@@ -31,7 +32,8 @@ def torch_fn(func: Callable) -> Callable:
     - Preserves dimension tuples like dim=(0, 1)
     - Handles nested lists/tuples gracefully
     - Automatically converts axis to dim for torch functions
-    - Applies device="cuda" if available
+    - Places tensors on CUDA when the installed torch build can run on the
+      present GPU, else on the CPU (see ``_runtime._device.default_device``)
     - Returns output in same type as input (numpy->numpy, pandas->pandas, etc.)
 
     Parameters
@@ -88,7 +90,7 @@ def torch_fn(func: Callable) -> Callable:
 
         # Skip strict assertion for certain types that may not convert to tensors
         # Instead, convert what we can and pass through what we can't
-        import torch
+        torch = import_torch("torch_fn")
 
         validated_args = []
         for arg_index, arg in enumerate(converted_args):
@@ -113,7 +115,7 @@ def torch_fn(func: Callable) -> Callable:
         results = func(*validated_args, **converted_kwargs)
 
         # Convert results back to original input types
-        import torch
+        torch = import_torch("torch_fn")
 
         if isinstance(results, torch.Tensor):
             if original_object is not None:
@@ -125,21 +127,21 @@ def torch_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataFrame"
                 ):
-                    import pandas as pd
+                    pd = import_pandas("torch_fn")
 
                     return pd.DataFrame(results.detach().cpu().numpy())
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Series"
                 ):
-                    import pandas as pd
+                    pd = import_pandas("torch_fn")
 
                     return pd.Series(results.detach().cpu().numpy().flatten())
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataArray"
                 ):
-                    import xarray as xr
+                    xr = import_xarray("torch_fn")
 
                     return xr.DataArray(results.detach().cpu().numpy())
             return results

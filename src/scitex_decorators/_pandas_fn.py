@@ -18,6 +18,7 @@ from typing import Callable
 import numpy as np
 
 from ._converters import is_nested_decorator
+from ._runtime._optional_deps import import_pandas, import_torch, import_xarray
 
 
 def pandas_fn(func: Callable) -> Callable:
@@ -36,9 +37,7 @@ def pandas_fn(func: Callable) -> Callable:
 
         # Convert args to pandas DataFrames
         def to_pandas(data):
-            import pandas as pd
-            import torch
-            import xarray as xr
+            pd = import_pandas("pandas_fn")
 
             if data is None:
                 return None
@@ -72,7 +71,7 @@ def pandas_fn(func: Callable) -> Callable:
         converted_kwargs = {k: to_pandas(v) for k, v in kwargs.items()}
 
         # Skip strict assertion for certain types
-        import pandas as pd
+        pd = import_pandas("pandas_fn")
 
         validated_args = []
         for arg_index, arg in enumerate(converted_args):
@@ -97,7 +96,7 @@ def pandas_fn(func: Callable) -> Callable:
         results = func(*validated_args, **converted_kwargs)
 
         # Convert results back to original input types
-        import pandas as pd
+        pd = import_pandas("pandas_fn")
 
         if isinstance(results, pd.DataFrame):
             if original_object is not None:
@@ -109,7 +108,7 @@ def pandas_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Tensor"
                 ):
-                    import torch
+                    torch = import_torch("pandas_fn")
 
                     return torch.tensor(results.values)
                 elif isinstance(original_object, pd.Series):
@@ -122,7 +121,7 @@ def pandas_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataArray"
                 ):
-                    import xarray as xr
+                    xr = import_xarray("pandas_fn")
 
                     return xr.DataArray(results.values)
             return results

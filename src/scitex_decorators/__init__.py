@@ -65,21 +65,21 @@ from ._wrap import wrap
 torch_fn = try_import_optional(
     "._torch_fn",
     attr="torch_fn",
-    extra="torch",
+    extra="all",
     pkg="scitex-decorators",
     package=__name__,
 )
 pandas_fn = try_import_optional(
     "._pandas_fn",
     attr="pandas_fn",
-    extra="pandas",
+    extra="all",
     pkg="scitex-decorators",
     package=__name__,
 )
 xarray_fn = try_import_optional(
     "._xarray_fn",
     attr="xarray_fn",
-    extra="xarray",
+    extra="all",
     pkg="scitex-decorators",
     package=__name__,
 )

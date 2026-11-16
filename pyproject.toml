@@ -27,19 +27,21 @@ dependencies = [
     # scitex_decorators.deprecated symbol re-exports from there; see SOC.md
     # SSOT section.
     "scitex-compat>=0.1.0",
+    # enable/disable_auto_order status lines (PS-220: no builtin print).
+    "scitex-logging>=0.2.5",
 ]
 
 [project.optional-dependencies]
-caching = [
+# The ONE runtime extra (scitex-dev general/01_ecosystem/26: the only extra is
+# `all`). Each library below is imported only through
+# scitex_decorators._optional_deps, which raises an ImportError naming
+# `pip install "scitex-decorators[all]"` when it is absent.
+all = [
+    # --- caching: cache_disk / cache_disk_async ---------------------------
     "joblib",
-]
-pandas = [
+    # --- type converters: pandas_fn / torch_fn / xarray_fn / signal_fn ----
     "pandas",
-]
-torch = [
     "torch",
-]
-xarray = [
     "xarray",
 ]
 dev = [
@@ -59,12 +61,6 @@ docs = [
     "myst-parser>=2.0",
     "sphinx-copybutton>=0.5",
     "sphinx-autodoc-typehints>=1.25",
-]
-all = [
-    "scitex-decorators[caching]",
-    "scitex-decorators[pandas]",
-    "scitex-decorators[torch]",
-    "scitex-decorators[xarray]",
 ]
 
 [project.urls]

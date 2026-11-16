@@ -34,9 +34,9 @@ from scitex_decorators import (
 | Decorator    | Native type inside | Notes                        |
 |--------------|--------------------|------------------------------|
 | `@numpy_fn`  | `numpy.ndarray`    | always available             |
-| `@torch_fn`  | `torch.Tensor`     | needs `[torch]` extra        |
-| `@pandas_fn` | `pandas.DataFrame` | needs `[pandas]` extra       |
-| `@xarray_fn` | `xarray.DataArray` | needs `[xarray]` extra       |
+| `@torch_fn`  | `torch.Tensor`     | needs `[all]` extra          |
+| `@pandas_fn` | `pandas.DataFrame` | needs `[all]` extra          |
+| `@xarray_fn` | `xarray.DataArray` | needs `[all]` extra          |
 | `@signal_fn` | numpy + axis-aware | for time-series              |
 
 ## Caching

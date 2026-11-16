@@ -18,6 +18,7 @@ from typing import Any as _Any
 from typing import Callable
 
 from ._converters import _return_always, is_nested_decorator, to_numpy
+from ._runtime._optional_deps import import_pandas, import_torch
 
 
 def numpy_fn(func: Callable) -> Callable:
@@ -71,21 +72,21 @@ def numpy_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Tensor"
                 ):
-                    import torch
+                    torch = import_torch("numpy_fn")
 
                     return torch.tensor(results)
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataFrame"
                 ):
-                    import pandas as pd
+                    pd = import_pandas("numpy_fn")
 
                     return pd.DataFrame(results)
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Series"
                 ):
-                    import pandas as pd
+                    pd = import_pandas("numpy_fn")
 
                     return pd.Series(results)
             return results

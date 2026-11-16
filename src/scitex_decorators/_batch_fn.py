@@ -17,6 +17,7 @@ import numpy as np
 from tqdm import tqdm as _tqdm
 
 from ._converters import is_nested_decorator
+from ._runtime._optional_deps import import_torch
 
 
 def batch_fn(func: Callable) -> Callable:
@@ -71,7 +72,7 @@ def batch_fn(func: Callable) -> Callable:
                 # Fallback for wrapped functions
                 batch_result = func(x[start:end], *args, **kwargs)
 
-            import torch
+            torch = import_torch("batch_fn")
 
             if isinstance(batch_result, torch.Tensor):
                 batch_result = batch_result.cpu()
@@ -83,7 +84,7 @@ def batch_fn(func: Callable) -> Callable:
 
             results.append(batch_result)
 
-        import torch
+        torch = import_torch("batch_fn")
 
         if isinstance(results[0], tuple):
             n_vars = len(results[0])
