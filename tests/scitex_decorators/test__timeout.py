@@ -105,6 +105,55 @@ def test_timeout_decorator_forwards_keyword_arguments_correctly():
     assert result == 20
 
 
+def test_timeout_decorator_reraises_exception_from_wrapped_function():
+    """An exception raised inside the child is re-raised in the caller,
+    promptly, instead of the caller blocking on a result that never comes."""
+
+    # Arrange
+    @timeout(seconds=30)
+    def failing_function():
+        raise ValueError("boom from child")
+
+    ctx = pytest.raises(ValueError, match="boom from child")
+    # Act
+    # Assert
+    with ctx:
+        failing_function()
+
+
+def test_timeout_decorator_raises_runtime_error_when_child_dies_without_result():
+    """A child that exits without reporting a result raises RuntimeError
+    naming its exit code, rather than hanging the caller forever."""
+
+    # Arrange
+    @timeout(seconds=30)
+    def dying_function():
+        os._exit(3)
+
+    ctx = pytest.raises(RuntimeError, match="code 3")
+    # Act
+    # Assert
+    with ctx:
+        dying_function()
+
+
+def test_timeout_decorator_returns_result_larger_than_pipe_buffer():
+    """A result bigger than the OS pipe buffer is returned, not misreported
+    as a timeout (the child cannot exit until its result is drained)."""
+
+    # Arrange
+    payload_size = 4 * 1024 * 1024
+
+    @timeout(seconds=30)
+    def big_result_function():
+        return b"x" * payload_size
+
+    # Act
+    result = big_result_function()
+    # Assert
+    assert len(result) == payload_size
+
+
 if __name__ == "__main__":
     import os
 

@@ -48,6 +48,7 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
+    "pytest-timeout",  # [tool.pytest.ini_options] timeout: a hang fails with stacks
     "ruff",
     "joblib",       # tests/scitex_decorators/_cache/test__cache_disk{,_async}.py
     "pandas",       # tests/scitex_decorators/test__{pandas,torch,xarray,signal,numpy,batch,auto_order,combined}_fn.py
@@ -80,6 +81,12 @@ scitex-decorators = "scitex_decorators"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["--disable-warnings"]
+# A hung test fails with every thread's stack instead of silently holding
+# the CI job until the runner cancels it (2026-11-16: the py3.11 leg of
+# PR #27 sat 24 min with no output). The "thread" method also covers
+# hangs in C code and in xdist workers, where signal delivery is unreliable.
+timeout = 300
+timeout_method = "thread"
 
 [tool.coverage.run]
 parallel = true
