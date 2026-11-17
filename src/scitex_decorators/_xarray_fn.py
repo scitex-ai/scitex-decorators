@@ -15,6 +15,7 @@ from typing import Callable
 import numpy as np
 
 from ._converters import is_nested_decorator
+from ._runtime._optional_deps import import_pandas, import_torch, import_xarray
 
 
 def xarray_fn(func: Callable) -> Callable:
@@ -33,9 +34,7 @@ def xarray_fn(func: Callable) -> Callable:
 
         # Convert args to xarray DataArrays
         def to_xarray(data):
-            import pandas as pd
-            import torch
-            import xarray as xr
+            xr = import_xarray("xarray_fn")
 
             if isinstance(data, xr.DataArray):
                 return data
@@ -56,7 +55,7 @@ def xarray_fn(func: Callable) -> Callable:
         converted_kwargs = {k: to_xarray(v) for k, v in kwargs.items()}
 
         # Assertion to ensure all args are converted to xarray DataArrays
-        import xarray as xr
+        xr = import_xarray("xarray_fn")
 
         for arg_index, arg in enumerate(converted_args):
             assert isinstance(
@@ -66,7 +65,7 @@ def xarray_fn(func: Callable) -> Callable:
         results = func(*converted_args, **converted_kwargs)
 
         # Convert results back to original input types
-        import xarray as xr
+        xr = import_xarray("xarray_fn")
 
         if isinstance(results, xr.DataArray):
             if original_object is not None:
@@ -78,21 +77,21 @@ def xarray_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Tensor"
                 ):
-                    import torch
+                    torch = import_torch("xarray_fn")
 
                     return torch.tensor(results.values)
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataFrame"
                 ):
-                    import pandas as pd
+                    pd = import_pandas("xarray_fn")
 
                     return pd.DataFrame(results.values)
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Series"
                 ):
-                    import pandas as pd
+                    pd = import_pandas("xarray_fn")
 
                     return pd.Series(results.values.flatten())
             return results

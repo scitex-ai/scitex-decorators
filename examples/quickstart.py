@@ -36,7 +36,7 @@ def main() -> int:
 
     # numpy_fn accepts torch tensors transparently if torch is available.
     # The decorator lazily imports torch during arg-conversion; without the
-    # [torch] extra (CI's default install) that import raises
+    # [all] extra that import raises
     # ModuleNotFoundError. Skip the standardize block in that case.
     arr = np.arange(12, dtype=np.float64).reshape(3, 4)
     try:

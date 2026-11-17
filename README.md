@@ -39,10 +39,7 @@
 ## Installation
 
 ```bash
-pip install scitex-decorators              # core (numpy only)
-pip install "scitex-decorators[caching]"   # + joblib for cache_disk
-pip install "scitex-decorators[torch]"     # + torch_fn / batch_torch_fn
-pip install "scitex-decorators[all]"       # everything
+pip install "scitex-decorators[all]"
 ```
 
 ## Architecture

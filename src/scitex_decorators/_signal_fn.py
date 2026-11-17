@@ -16,6 +16,7 @@ from typing import Callable
 import numpy as np
 
 from ._converters import _return_always, is_nested_decorator, to_torch
+from ._runtime._optional_deps import import_pandas, import_torch, import_xarray
 
 
 def signal_fn(func: Callable) -> Callable:
@@ -64,7 +65,7 @@ def signal_fn(func: Callable) -> Callable:
         results = func(*converted_args, **kwargs)
 
         # Convert results back to original input types
-        import torch
+        torch = import_torch("signal_fn")
 
         def _to_np(t):
             arr = t.detach().cpu().numpy()
@@ -84,28 +85,28 @@ def signal_fn(func: Callable) -> Callable:
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataFrame"
                 ):
-                    import pandas as pd
+                    pd = import_pandas("signal_fn")
 
                     return pd.DataFrame(_to_np(results))
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "Series"
                 ):
-                    import pandas as pd
+                    pd = import_pandas("signal_fn")
 
                     return pd.Series(_to_np(results).flatten())
                 elif (
                     hasattr(original_object, "__class__")
                     and original_object.__class__.__name__ == "DataArray"
                 ):
-                    import xarray as xr
+                    xr = import_xarray("signal_fn")
 
                     return xr.DataArray(_to_np(results))
             return results
 
         # Handle tuple returns (e.g., (signal, frequencies))
         elif isinstance(results, tuple):
-            import torch
+            torch = import_torch("signal_fn")
 
             converted_results = []
             for r in results:

@@ -16,6 +16,9 @@ from typing import Callable, Dict, Tuple, Union
 
 import numpy as np
 
+from ._runtime._device import default_device
+from ._runtime._optional_deps import import_pandas, import_torch
+
 """
 Core conversion utilities for handling data type transformations.
 Provides consistent conversion between NumPy, PyTorch, Pandas, and other formats.
@@ -47,7 +50,7 @@ def _conversion_warning(old: _Any, new) -> None:
 
 def _try_device(tensor, device: str):
     """Try to move tensor to specified device with graceful fallback."""
-    import torch
+    torch = import_torch("to_torch")
 
     if not isinstance(tensor, torch.Tensor):
         return tensor
@@ -66,7 +69,7 @@ def _try_device(tensor, device: str):
 
 def is_torch(*args: _Any, **kwargs: _Any) -> bool:
     """Check if any input is a PyTorch tensor."""
-    import torch
+    torch = import_torch("is_torch")
 
     return any(isinstance(arg, torch.Tensor) for arg in args) or any(
         isinstance(val, torch.Tensor) for val in kwargs.values()
@@ -75,7 +78,7 @@ def is_torch(*args: _Any, **kwargs: _Any) -> bool:
 
 def is_cuda(*args: _Any, **kwargs: _Any) -> bool:
     """Check if any input is a CUDA tensor."""
-    import torch
+    torch = import_torch("is_cuda")
 
     return any((isinstance(arg, torch.Tensor) and arg.is_cuda) for arg in args) or any(
         (isinstance(val, torch.Tensor) and val.is_cuda) for val in kwargs.values()
@@ -105,11 +108,16 @@ def to_torch(
     device: str = None,
     **kwargs: _Any,
 ) -> _Any:
-    """Convert various data types to PyTorch tensors."""
-    import torch
+    """Convert various data types to PyTorch tensors.
+
+    The target device is *device*, else a ``device`` keyword argument, else
+    ``default_device()`` -- "cuda" only when this torch build can run on the
+    present GPU.
+    """
+    torch = import_torch("to_torch")
 
     if device is None:
-        device = kwargs.get("device", "cuda" if torch.cuda.is_available() else "cpu")
+        device = kwargs.get("device") or default_device()
 
     def _float_dtype_for(arr: _Any):
         """Pick a torch float dtype that preserves the precision of arr.
@@ -118,7 +126,6 @@ def to_torch(
         - float16 inputs -> torch.float16
         - float32 / integer / unknown -> torch.float32 (current default)
         """
-        import torch
 
         np_dtype = getattr(arr, "dtype", None)
         if np_dtype is not None:
@@ -135,8 +142,7 @@ def to_torch(
 
     def _to_torch(data: _Any) -> _Any:
         """Internal conversion function for various data types."""
-        import pandas as pd
-        import torch
+        pd = import_pandas("to_torch")
 
         # Check for None
         if data is None:
@@ -235,8 +241,8 @@ def to_numpy(*args: _Any, return_fn: Callable = _return_if, **kwargs: _Any) -> _
 
     def _to_numpy(data: _Any) -> _Any:
         """Internal conversion function for various data types."""
-        import pandas as pd
-        import torch
+        pd = import_pandas("to_numpy")
+        torch = import_torch("to_numpy")
 
         # Check for None
         if data is None:
